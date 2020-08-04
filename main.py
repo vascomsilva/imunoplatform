@@ -2,7 +2,7 @@ import streamlit as st
 import base64
 import numpy as np
 import pandas as pd
-import time
+import datetime
 
 st.title('Perfil')
 
@@ -14,12 +14,12 @@ st.checkbox("Feminino")
 #Antecedentes Rinite Alérgica
 
 
-#Testes cutâneos com slider, gravar no txt nome dos testes com valor>3, separados por ";"
-st.write("Testes cutâneos")
+#Testes cutâneos com slide, data da nova atualização, gravar no txt nome dos testes com valor>3, separados por ";"
+st.subheader('Testes cutâneos')
+
+d = st.date_input("Nova atualização",datetime.date(2020, 8, 4))
 
 dermaptero = st.slider('Dermatophagoides pteronyssinus', 0, 5, 0)
-st.write('Teste de Dermatophagoides pteronyssinus:', dermaptero)
-
 dermafarinae = st.slider('Dermatophagoides farinae', 0, 5, 0)
 lepi = st.slider('Lepidoglyphus destructor', 0, 5, 0)
 blomia = st.slider('Blomia tropicalis', 0, 5, 0)
@@ -38,6 +38,10 @@ salsola = st.slider('Salsola kali', 0, 5, 0)
 plantago = st.slider('Plantago lanceolata', 0, 5, 0)
 
 
+
+
+
+
 # When no file name is given, pandas returns the CSV as a string, nice.
 df = pd.DataFrame({
     'Teste': ["Dermatophagoides pteronyssinus",
@@ -51,10 +55,15 @@ df = pd.DataFrame({
 
 csv = df.to_csv(index=False)
 b64 = base64.b64encode(csv.encode()).decode()  # some strings <-> bytes conversions necessary here
-href = f'<a href="data:file/csv;base64,{b64}">Download CSV File</a> (right-click and save as &lt;some_name&gt;.csv)'
+href = f'<a href="data:file/csv;base64,{b64}">Tabela - Download CSV File</a> (right-click and save as &lt;some_name&gt;.csv)'
 st.markdown(href, unsafe_allow_html=True)
 
 
+comoelequer = pd.DataFrame({ 'Testes cutaneos por picada', d})
+csv = comoelequer.to_csv(index=False)
+b64 = base64.b64encode(csv.encode()).decode()  # some strings <-> bytes conversions necessary here
+href = f'<a href="data:file/csv;base64,{b64}">Como ele quer - Download CSV File</a> (right-click and save as &lt;some_name&gt;.csv)'
+st.markdown(href, unsafe_allow_html=True)
 
 
 

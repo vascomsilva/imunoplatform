@@ -1,120 +1,183 @@
+# Main Ones
+from streamlit import caching
 import streamlit as st
-import base64
 import numpy as np
 import pandas as pd
 import datetime
+import SessionState
+import csv
 
-st.title('Perfil')
+# Others
+import base64
+import json
 
-#Dados do doente
-st.write("Dados do doente")
-#st.checkbox("Feminino")
+# Modules of Possible Diagnosis
+import os.path
+import sys
+sys.path.append('pages/')
 
-# Verificar depois de que forma podemos manusear isto
-d = st.date_input("Nova atualização",datetime.date(2020, 8, 25))
+from diagnosis_main import page as main_page
+from rinite_alergica import writereadlists
 
+##############################################################################
+st.set_page_config(page_title = 'ImmunoPlatform', layout="wide")
+# This can only be set once and it must be the first streamlit command of the app
 ###############################################################################
+def introduction_page(action):
 
-# Antecedentes
+    if action == 'ON':
+        st.header('**IMMUNOPLATFORM - v1.0.0**')
+        st.markdown('''
+                    Bem-vindo à ImmunoPlatform! \n
+                    Esta plataforma permite auxiliar consultas na área de Imunoalergologia
+                    fornecendo *widgets* interativos com o intuito de facilitar o preenchimento,
+                    por parte do médico, das diferentes variáveis para quatro diagnósticos distintos: \n
+                    - Doença Alérgica Respiratória \n
+                    - Urticária Crónica \n
+                    - Alergia Alimentar \n
+                    - Hipersensibilidade a Fármacos \n
+                    Esta plataforma permite organizar os dados recolhidos de cada paciente
+                    ao longo de diversas consultas, estando essa organização perfeitamente automatizada.
+                    De forma global, esta plataforma possui três ações distintas: \n
+                    - **New Patient** - permite guardar no gcsv informação básica de um novo paciente
+                    que ainda não conste na base de dados (**Nota**: a submissão apenas é feita corretamente
+                    se todos os campos forem preenchidos); \n
+                    - **New Appointment** - permite guardar no pcsv informação referente a uma consulta
+                    específica de um paciente específico (**Nota**: esta ação permite também a visualização de
+                    gráficos de controlo e a geração de um texto-resumo que reflete aquilo que foi
+                    preenchido na presente consulta e que pode ser utilizado para o preenchimento do
+                    registo clínico do paciente - necessário clicar no botão “Finish”); \n
+                    - **Edit Lists** - permite adicionar novos elementos a uma lista específica;
+                    ''')
+        st.subheader('Outras Notas Importantes')
+        st.markdown('''
+                    - Todos os *widgets*, de forma global (sejam eles de texto, data, números ou seleção), podem
+                    ser alterados, bastando para isso alterar o valor/elemento que foi selecionado previamente.
+                    No entanto, é necessário ter em atenção que, aquando do clique do botão **Finish**, todos os
+                    valores/elementos preenchidos até à altura serão aqueles que entrarão no pcsv do paciente em causa.
+                    **Nota**: caso se dê qualquer tipo de engano desta espécie, basta modificar
+                    aquilo que foi inserido de forma errada e voltar a submeter (**Finish**). Assim que a consulta
+                    acabar, poderá ir diretamente ao pcsv do paciente e apagar a linha que foi submetida por engano
+                    e guardar esse pcsv; \n
+                    - Para todos os *text_inputs*, o texto introduzido apenas é submetido se for clicado
+                    (ENTER ou similar) - sendo que esta indicação aparece no *widget* enquanto o utilizador está
+                    a preenchê-lo; \n
+                    - Caso exista algum tempo prolongado sem mexer na plataforma é normal que, na primeira resposta
+                    ao rato, a plataforma demore uns segundos a responder. Nestes casos, bastará aguardar meia dúzia
+                    de segundos para que retome o funcionamento normal.\n
+                    ''')
+    else:
+        return
 
-st.subheader('Antecedentes')
+def list_patient(info, type_pat):
 
-ante_RA = ['Atopia mãe/pai/irmãos', 'Prematuridade', 'Eczema Atópico', 'Parto cesariana/distócico/eutócico',
-            'Aleitamento materno exclusivo 4+ meses', 'Fumador/ ex-fumador', 'Exposição a fumo de tabaco pai/mãe/outros',
-            'Exposição a tóxicos ambientais', 'Exposição respiratória profissional', 'Frequenta infantário',
-            'Hipertrofia adenoides']
+    main_list = pd.read_csv('patient_list.txt',
+    header = 0,
+    index_col = False)
 
-select_ante_RA = st.multiselect('Quais os antecedentes relativos a esta patologia?',
-    ante_RA)
+    (main_list.applymap(type) == str).all(0)
 
-df_ante_RA = pd.DataFrame({'Antecedentes': select_ante_RA})
+    if type_pat == 'Edit Lists':
+        list = st.sidebar.selectbox('Que lista pretende editar?', ['Select','antecedentes_DAR',
+                                    'antecedentes_AA', 'características_UC',
+                                    'controlo_UC', 'extratos_DAR', 'labs_DAR', 'reaçãomaisgrave_AA',
+                                    'reaçãomaisgrave_HF', 'testes_cutâneos_DAR'])
+        if list != 'Select':
+            edit_list(list)
 
-###############################################################################
+    elif type_pat == 'New Appointment':
+        patient_now = st.sidebar.selectbox('Search by Name or File number',
+        ['Select']+[main_list['Code'][i] + ' | ' + main_list['Name'][i] for i in range(main_list.shape[0])])
+        count = patient_now[:5]
+        row_now = main_list[main_list['Code'].str.match(count)]
+        if st.sidebar.button('Limpar Página'):
+            return main_list
+        if patient_now != 'Select':
+            new_patient_now = patient_now.replace(count, '')
+            name_patient = new_patient_now.replace('|', '')
+            main_page(main_list, name_patient, count)
 
-# Testes Cutâneos - ESTÁ BOM
+    elif type_pat == 'New Patient':
+        main_list.loc[len(main_list.index)] = info
+        row_now = main_list.loc[len(main_list.index) - 1]
+        if len(info) - info.count('') == 5:
+            main_list.to_csv('patient_list.csv',
+            header = ['Name','Birth','Contact','Gender','Code'],
+            index = False,
+            encoding = 'utf_8')
 
-st.subheader('Testes cutâneos')
+            np.savetxt(r'patient_list.txt',
+            main_list.to_numpy(),
+            '%-10s',
+            delimiter = ',',
+            header = 'Name,Birth,Contact,Gender,Code',
+            comments = '')
 
-test_cut = ['Dermatophagoides pteronyssinus', 'Dermatophagoides farinae', 'Lepidoglyphus destructor', 'Blomia tropicalis',
-            'Alternaria Alternata', 'Blatella germanica', 'Cão', 'Gato', 'Gramíneas', 'Olea europea', 'Quercus ilex',
-            'Betula verrucosa', 'Platanus acerifola', 'Artemisia vulgaris', 'Parietaria judaica', 'Salsola kali', 'Plantago lanceolata']
+    return main_list
 
-test_cut_selected = st.multiselect('Quais os testes cutâneos que pretende fazer?', test_cut)
 
-df_test_values = []
+def edit_list(list):
 
-for i in range(len(test_cut_selected)):
-    df_test_value = st.slider(test_cut_selected[i], 0, 5, 0)
-    if df_test_value > 3:
-        df_test_values.append(df_test_value)
+    col_A, col_B = st.beta_columns(2)
 
-df_test_names = pd.DataFrame({'Teste': [test_cut_selected]})
+    with col_A:
+        st.subheader('Atual Lista - '+list)
 
-df_test_values = pd.DataFrame({'Valor': [df_test_values]})
+        content_list = writereadlists(list, 'read', '')
 
-###############################################################################
+        st.dataframe(content_list)
 
-# Análises - DE QUE FORMA LIDAR MELHOR COM ISTO?
+    with col_B:
+        st.subheader('Adicionar Elementos')
 
-st.subheader('Análises')
+        st.markdown('''
+        Aqui deve adicionar um novo elemento à lista que acabou de selecionar. Caso
+        pretenda remover algum elemento na lista, deverá abrir a pasta *"lists"* e
+        remover manualmente o elemento que não pretende ver mais inserido nas opções
+        da lista em questão.
+        ''')
 
-analises = ['Eosinófilos', 'IgE total (kU/L)', 'sIgE', 'Outras relavantes']
+        new_elem = st.text_input('Novo Elemento')
 
-eosi = st.number_input(analises[0], min_value = int(500), max_value = int(7000), step = int(50))
-IgEt = st.number_input(analises[1], min_value = int(), max_value = int(300), value = int(), step = int(10))
-sIgE = st.text_input(analises[2])
-outros = st.text_input(analises[3])
+        if new_elem != '':
+            list_final = writereadlists(list, 'write', new_elem)
 
-df_anal_names = pd.DataFrame({'Análise': analises})
-df_anal_values = pd.DataFrame({'Valores': [eosi, IgEt, sIgE, outros]})
 
-###############################################################################
 
-# Imunoterapia - FALTA MELHORAR AQUI MUITA COISA
+def after_session(name, gender, diagnosis, code):
+    st.sidebar.subheader('Choose the action:')
+    type_pat = st.sidebar.selectbox('', ['Select', 'New Patient', 'New Appointment', 'Edit Lists'])
+    info = ['','','','','']
+    if type_pat == 'Select':
+        introduction_page('ON')
+    elif type_pat == 'Edit Lists':
+        list_patient(info, type_pat)
+    elif type_pat == 'New Appointment':
+        list_patient(info, type_pat)
+    elif type_pat == 'New Patient':
+        name = st.sidebar.text_input('Name')
+        birth = st.sidebar.date_input('Birth date', datetime.date.today())
+        contact = st.sidebar.text_input('Contact')
+        gender = st.sidebar.selectbox('Gender', ['Male', 'Female', 'Other'])
+        code = st.sidebar.text_input('File Number')
+        info = [name, birth, contact, gender, code]
+        list_patient(info, type_pat)
 
-st.subheader('Imunoterapia')
 
-extr_names = ['D. pteronyssinus', 'D. farinae', 'L. destructor', 'B. tropicalis', 'alternata', 'Cão', 'Gato',
-            'Gramíneas selvagens', 'Oliveira', 'vulgaris', 'P. judaica', 'S. kali']
+# Initiating Session States for Logins and Headers
+login_ss = SessionState.get(username = '', password = '')
+headers_ss = SessionState.get(main_title = '', date = '')
 
-labs_names = ['Diater', 'Roxall', 'Leti', 'Inmunotek', 'Stallergennes', 'Allergy Therapeutics', 'Hal Allergy', 'Lofarma']
+# Sidebar with Login
+st.sidebar.subheader('Login')
+login_ss.username = st.sidebar.text_input('Username')
+login_ss.password = st.sidebar.text_input('Password', type = 'password')
 
-via_imunoter = st.selectbox('Qual a via administrada?', ('Subcutânea', 'Sublingual'))
+# Check Login
+def check_login(username, password):
+    return login_ss.username == 'pedromorais' and login_ss.password == '12345'
 
-extr_imunoter = st.multiselect('Quais os extratos utilizados?', extr_names)
-
-lab_imunoter = st.multiselect('Quais os laboratórios??', labs_names)
-
-date_imunoter = st.date_input('Desde quando?',datetime.date(2020,8,25))
-
-efeit_imunoter = st.text_area('Quais os efeitos adversos?')
-
-###############################################################################
-
-# Controlo - MELHORAR
-
-st.subheader('Controlo')
-
-obstr_control = st.slider('Nariz Entupido', 0, 3, 0)
-
-esp_control = st.slider('Espirros', 0, 3, 0)
-
-prur_control = st.slider('Comichão no Nariz', 0, 3, 0)
-
-rinor_control = st.slider('Corrimento/Pingo no Nariz', 0, 3, 0)
-
-med_control = st.slider('Aumentar utilização dos medicamentos', 0, 3, 0)
-
-df_control_names = pd.DataFrame({'Controlo': ['Obstrução', 'Espirros', 'Prurido', 'Rinorreia', 'Medicação']})
-df_control_values = pd.DataFrame({'Valores': [obstr_control, esp_control, prur_control, rinor_control, med_control]})
-
-###############################################################################
-
-# When no file name is given, pandas returns the CSV as a string, nice.
-df = pd.concat([df_ante_RA, df_test_names, df_test_values, df_anal_names, df_anal_values,
-                df_control_names, df_control_values], ignore_index = True, axis = 1)
-
-csv = df.to_csv(index=False)
-b64 = base64.b64encode(csv.encode()).decode()  # some strings <-> bytes conversions necessary here
-href = f'<a href="data:file/csv;base64,{b64}">Tabela - Download CSV File</a> (right-click and save as &lt;some_name&gt;.csv)'
-st.markdown(href, unsafe_allow_html=True)
+if check_login(login_ss.username, login_ss.password):
+    after_session(None, None, None, None)
+elif not login_ss.password == '12345' and len(login_ss.password) != 0:
+    st.sidebar.subheader('incorrect password')

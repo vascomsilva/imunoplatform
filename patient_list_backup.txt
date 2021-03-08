@@ -1,0 +1,21 @@
+Name,Birth,Contact,Gender,Diagnosis,Code
+António Coentros,1970-04-23,913546266,Male,Algo1,321A3
+Diana Silva Crua,1970-04-23,913546266,Female,Algo2,542R3
+Telma Esteves,1970-04-23,913546266,Female,Algo1,434Y2
+Garrafa da Horta,1970-04-23,913546266,Male,Algo3,242R3
+José Saraiva,1970-04-23,913546266,Male,Algo1,423D3
+António Coentros,1970-04-23,913546266,Male,Algo1,321A3
+Diana Silva Crua,1970-04-23,913546266,Female,Algo2,542R3
+Telma Esteves,1970-04-23,913546266,Female,Algo1,434Y2
+Garrafa da Horta,1970-04-23,913546266,Male,Algo3,242R3
+José Saraiva,1970-04-23,913546266,Male,Algo1,423D3
+António Coentros,1970-04-23,913546266,Male,Algo1,321A3
+Diana Silva Crua,1970-04-23,913546266,Female,Algo2,542R3
+Telma Esteves,1970-04-23,913546266,Female,Algo1,434Y2
+Garrafa da Horta,1970-04-23,913546266,Male,Algo3,242R3
+José Saraiva,1970-04-23,913546266,Male,Algo1,423D3
+António Coentros,1970-04-23,913546266,Male,Algo1,321A3
+Diana Silva Crua,1970-04-23,913546266,Female,Algo2,542R3
+Telma Esteves,1970-04-23,913546266,Female,Algo1,434Y2
+Garrafa da Horta,1970-04-23,913546266,Male,Algo3,242R3
+José Saraiva,1970-04-23,913546266,Male,Algo1,423D3
